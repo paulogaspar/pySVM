@@ -11,24 +11,28 @@ class SVM:
 		self.numpasses = numpasses
 		self.kernel = kernel
 		self.memoization = memoization
+		self.self.alphatol = 1e-7;
 
 	def train(self, data, labels):
 
-		N = len(data)  # Number of instances
-		D = len(data[0])  # Number of features
+		self.data = data
+		self.labels = labels
 
-		alpha = np.zeros(N)
-		b = 0.0
+		self.N = len(self.data)  # Number of instances
+		self.D = len(self.data[0])  # Number of features
 
-		usew_ = False  # ??? internal efficiency flag?
+		self.alpha = np.zeros(self.N)
+		self.b = 0.0
+
+		self.usew_ = False  # ??? internal efficiency flag?
 
 		# Cache kernel results
 		if (self.memoization):
 			kernel_results = []
-			for i in xrange(N):
+			for i in xrange(self.N):
 				tmp_result = []
-				for j in xrange(N):
-					tmp_result.append( kernel(data[i], data[j]) )
+				for j in xrange(self.N):
+					tmp_result.append( kernel(self.data[i], self.data[j]) )
 				kernel_results.append(tmp_result)
 
 		# Start SMO algorithm
@@ -37,21 +41,21 @@ class SVM:
 		while (passes < self.numpasses) and (it < self.maxiter):
 			
 			alpha_changed = 0
-			for i in xrange(N):
-				Ei = margin_one(data[i]) - labels[i]
-				if ((labels[i]*Ei < -self.tol) and (alpha[i] > self.C))
-					or ((labels[i]*Ei > self.tol) and (alpha[i] > 0)):
+			for i in xrange(self.N):
+				Ei = margin_one(self.data[i]) - self.labels[i]
+				if ((self.labels[i]*Ei < -self.tol) and (self.alpha[i] > self.C))
+					or ((self.labels[i]*Ei > self.tol) and (self.alpha[i] > 0)):
 
 					j = i
 					while j == i:
-						j = randint(0, N)
-					Ej = margin_one(data[j]) - labels[j]
+						j = randint(0, self.N)
+					Ej = margin_one(self.data[j]) - self.labels[j]
 
-					ai = alpha[i]
-					aj = alpha[j]
+					ai = self.alpha[i]
+					aj = self.alpha[j]
 					L = 0
 					H = self.C
-					if labels[i] == labels[j]:
+					if self.labels[i] == self.labels[j]:
 						L = max(0, ai+aj-self.C)
 						H = min(self.C, ai+aj)
 					else:
@@ -65,26 +69,26 @@ class SVM:
 					if eta >= 0
 						continue
 
-					newaj = aj - labels[j] * (Ei-Ej) / eta
+					newaj = aj - self.labels[j] * (Ei-Ej) / eta
 					if newaj>H:
 						newaj = H
 					if newaj<L:
 						newaj = L
 					if abs(aj - newaj) < 1e-4:
 						continue
-					alpha[j] = newaj
-					newai = ai + labels[i] * labels[j] * (aj - newaj)
-					this.alpha[i] = newai
+					self.alpha[j] = newaj
+					newai = ai + self.labels[i] * self.labels[j] * (aj - newaj)
+					self.alpha[i] = newai
 
-					b1 = b - Ei - labels[i] * (newai-ai) * kernel_results[i][i]
-						 - labels[j] * (newaj-aj) * kernel_results[i][j]
-					b2 = b - Ej - labels[i]*(newai-ai) * kernel_results[i][j]
-						 - labels[j] * (newaj-aj) * kernel_results[j][j]
-					b = 0.5*(b1+b2)
+					b1 = self.b - Ei - self.labels[i] * (newai-ai) * kernel_results[i][i]
+						 - self.labels[j] * (newaj-aj) * kernel_results[i][j]
+					b2 = self.b - Ej - self.labels[i]*(newai-ai) * kernel_results[i][j]
+						 - self.labels[j] * (newaj-aj) * kernel_results[j][j]
+					self.b = 0.5*(b1+b2)
 					if (newai > 0) and (newai < self.C):
-						b = b1
+						self.b = b1
 					if (newaj > 0) and (newaj < C):
-						b = b2
+						self.b = b2
 
 					alpha_changed += 1
 
@@ -96,13 +100,46 @@ class SVM:
 				passes = 0
 
 		if kernel == linear_kernel:
-			w = []
-			for j in xrange(D):
+			self.w = []
+			for j in xrange(self.D):
 				s = 0.0
-				for i in xrange(N):
-					s += alpha[i] * labels[i] * data[i][j]
-				w.append[s]
-				usew_ = True
+				for i in xrange(self.N):
+					s += self.alpha[i] * self.labels[i] * self.data[i][j]
+				self.w.append[s]
+				self.usew_ = True
+		else:
+
+			newdata = []
+			newlabels = []
+			newalpha = []
+			for i in xrange(self.N):
+				if self.alpha[i] > self.alphatol:
+					newdata.append(self.data[i])
+					newlabels.append(self.labels[i])
+					newalpha.append(self.alpha[i])
+
+			self.data = newself.data
+			self.labels = newself.labels
+			self.alpha = newself.alpha
+			self.N = len(self.data)
+
+		trainstats = {iterations: it}
+
+		return trainstats
+
+
+	# Calculate margin of given instance
+	def margin_one(self, arr):
+		f = self.b
+
+		if self.usew_:
+			for j in xrange(self.D):
+				f += arr[j] * self.w[j]
+		else:
+			for i in xrange(self.N):
+				f += self.alpha[i] * self.labels[i] * self.kernel(arr, self.data[i])
+		
+		return f			
 
 
 	def linear_kernel():
