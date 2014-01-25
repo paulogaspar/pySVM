@@ -181,5 +181,3 @@ class SVM:
 		return s
 
 
-		pass
-
