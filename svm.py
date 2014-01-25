@@ -28,12 +28,12 @@ class SVM:
 
 		# Cache kernel results
 		if (self.memoization):
-			kernel_results = []
+			self.kernel_results = []
 			for i in xrange(self.N):
 				tmp_result = []
 				for j in xrange(self.N):
 					tmp_result.append( kernel(self.data[i], self.data[j]) )
-				kernel_results.append(tmp_result)
+				self.kernel_results.append(tmp_result)
 
 		# Start SMO algorithm
 		it = 0
@@ -65,7 +65,7 @@ class SVM:
 					if abs(L-H) < 1e-4:
 						continue
 
-					eta = 2 * kernel_results[i][j] - kernel_results[i][i] - kernel_results[j][j]
+					eta = 2 * kernel_result(i, j) - kernel_result(i, i) - kernel_result(j, j)
 					if eta >= 0
 						continue
 
@@ -81,9 +81,9 @@ class SVM:
 					self.alpha[i] = newai
 
 					b1 = self.b - Ei - self.labels[i] * (newai-ai) * kernel_results[i][i]
-						 - self.labels[j] * (newaj-aj) * kernel_results[i][j]
+						 - self.labels[j] * (newaj-aj) * kernel_result(i, j)
 					b2 = self.b - Ej - self.labels[i]*(newai-ai) * kernel_results[i][j]
-						 - self.labels[j] * (newaj-aj) * kernel_results[j][j]
+						 - self.labels[j] * (newaj-aj) * kernel_result(j, j)
 					self.b = 0.5*(b1+b2)
 					if (newai > 0) and (newai < self.C):
 						self.b = b1
@@ -142,7 +142,44 @@ class SVM:
 		return f			
 
 
-	def linear_kernel():
+	def predict_one(self, arr):
+		return margin_one(arr) > 0 ? 1 : -1
+
+
+	def margins(self, data):
+
+		N = len(data)
+		for i in xrange(N):
+			margins.append(margin_one( data[i] ))
+
+		return margins
+
+
+	def kernel_result(self, i, j):
+
+		if not(self.kernel_results is None):
+			return self.kernel_results
+		else:
+			return self.kernel(self.data[i], self.data[j])
+
+
+	def predict(self, data):
+
+		margs = margins(data)
+		for i in xrange(len(margs)):
+			margs[i] = margs[i] > 0 ? 1 : -1
+
+		return margs
+
+
+	def linear_kernel(v1, v2):
+
+		s = 0
+		for q in xrange(len(v1)):
+			s += v1[q] * v2[q]
+
+		return s
+
 
 		pass
 
