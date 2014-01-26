@@ -1,5 +1,7 @@
 import numpy as np
 from random import randint
+import sys
+from kernels import *
 
 class SVM:
 
@@ -11,7 +13,58 @@ class SVM:
 		self.numpasses = numpasses
 		self.kernel = kernel
 		self.memoization = memoization
-		self.self.alphatol = 1e-7;
+		self.alphatol = 1e-7;
+
+
+	# Calculate margin of given instance
+	def margin_one(self, arr):
+		f = self.b
+
+		if self.usew_:
+			for j in xrange(self.D):
+				f += arr[j] * self.w[j]
+		else:
+			for i in xrange(self.N):
+				f += self.alpha[i] * self.labels[i] * self.kernel(arr, self.data[i])
+		
+		return f			
+
+
+	def predict_one(self, arr):
+		if margin_one(arr) > 0:
+			return 1
+		else:
+			return -1
+
+
+	def margins(self, data):
+
+		N = len(data)
+		for i in xrange(N):
+			margins.append(margin_one( data[i] ))
+
+		return margins
+
+
+	def kernel_result(self, i, j):
+
+		if not(self.kernel_results is None):
+			return self.kernel_results
+		else:
+			return self.kernel(self.data[i], self.data[j])
+
+
+	def predict(self, data):
+
+		margs = margins(data)
+		for i in xrange(len(margs)):
+			if margs[i] > 0:
+				margs[i] = 1
+			else:
+				margs[i] = -1
+
+		return margs
+
 
 	def train(self, data, labels):
 
@@ -26,25 +79,31 @@ class SVM:
 
 		self.usew_ = False  # ??? internal efficiency flag?
 
+		print "Caching kernel results (",self.N,"iterations )"
+
 		# Cache kernel results
 		if (self.memoization):
 			self.kernel_results = []
 			for i in xrange(self.N):
+				print i
 				tmp_result = []
 				for j in xrange(self.N):
-					tmp_result.append( kernel(self.data[i], self.data[j]) )
+					tmp_result.append( self.kernel(self.data[i], self.data[j]) )
 				self.kernel_results.append(tmp_result)
+
+		print "Starting SMO"
 
 		# Start SMO algorithm
 		it = 0
 		passes = 0
 		while (passes < self.numpasses) and (it < self.maxiter):
 			
+			print "Iteration", it
+
 			alpha_changed = 0
 			for i in xrange(self.N):
 				Ei = margin_one(self.data[i]) - self.labels[i]
-				if ((self.labels[i]*Ei < -self.tol) and (self.alpha[i] > self.C))
-					or ((self.labels[i]*Ei > self.tol) and (self.alpha[i] > 0)):
+				if ((self.labels[i]*Ei < -self.tol) and (self.alpha[i] > self.C)) or ((self.labels[i]*Ei > self.tol) and (self.alpha[i] > 0)):
 
 					j = i
 					while j == i:
@@ -66,7 +125,7 @@ class SVM:
 						continue
 
 					eta = 2 * kernel_result(i, j) - kernel_result(i, i) - kernel_result(j, j)
-					if eta >= 0
+					if eta >= 0:
 						continue
 
 					newaj = aj - self.labels[j] * (Ei-Ej) / eta
@@ -80,10 +139,8 @@ class SVM:
 					newai = ai + self.labels[i] * self.labels[j] * (aj - newaj)
 					self.alpha[i] = newai
 
-					b1 = self.b - Ei - self.labels[i] * (newai-ai) * kernel_results[i][i]
-						 - self.labels[j] * (newaj-aj) * kernel_result(i, j)
-					b2 = self.b - Ej - self.labels[i]*(newai-ai) * kernel_results[i][j]
-						 - self.labels[j] * (newaj-aj) * kernel_result(j, j)
+					b1 = self.b - Ei - self.labels[i] * (newai-ai) * kernel_results[i][i] - self.labels[j] * (newaj-aj) * kernel_result(i, j)
+					b2 = self.b - Ej - self.labels[i]*(newai-ai) * kernel_results[i][j] - self.labels[j] * (newaj-aj) * kernel_result(j, j)
 					self.b = 0.5*(b1+b2)
 					if (newai > 0) and (newai < self.C):
 						self.b = b1
@@ -128,56 +185,28 @@ class SVM:
 		return trainstats
 
 
-	# Calculate margin of given instance
-	def margin_one(self, arr):
-		f = self.b
-
-		if self.usew_:
-			for j in xrange(self.D):
-				f += arr[j] * self.w[j]
-		else:
-			for i in xrange(self.N):
-				f += self.alpha[i] * self.labels[i] * self.kernel(arr, self.data[i])
-		
-		return f			
 
 
-	def predict_one(self, arr):
-		return margin_one(arr) > 0 ? 1 : -1
+
+# Read data points from input file
+def read_data(filename="input.txt"):
+    print "\nReading file", filename, "..."
+
+    file_data = np.genfromtxt(filename, delimiter='\t', skip_header=1)
+    true_class = np.ravel(file_data[:,-1:])
+    positive_fraction = (sum(true_class)*100.0) / len(true_class)
+    
+    print "Done!", len(true_class), "data points were read, with", len(file_data[0,:-1]),"features (",positive_fraction,"% positive )"
+    return file_data[:,:-1], true_class
 
 
-	def margins(self, data):
+if __name__ == '__main__':
 
-		N = len(data)
-		for i in xrange(N):
-			margins.append(margin_one( data[i] ))
+	# filename
+	filename = sys.argv[1]
 
-		return margins
+	# read data
+	data, clas = read_data(filename)
 
-
-	def kernel_result(self, i, j):
-
-		if not(self.kernel_results is None):
-			return self.kernel_results
-		else:
-			return self.kernel(self.data[i], self.data[j])
-
-
-	def predict(self, data):
-
-		margs = margins(data)
-		for i in xrange(len(margs)):
-			margs[i] = margs[i] > 0 ? 1 : -1
-
-		return margs
-
-
-	def linear_kernel(v1, v2):
-
-		s = 0
-		for q in xrange(len(v1)):
-			s += v1[q] * v2[q]
-
-		return s
-
-
+	svm = SVM()
+	svm.train(data, clas)
